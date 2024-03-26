@@ -49,6 +49,8 @@ mod tests {
     #[googletest::test]
     fn it_retries_if_first_call_fails() {
         let mut mock_client = MockClient::new();
+        mock_client.expect_call().times(1).returning(|_| Err("".into()));
+        mock_client.expect_call().times(1).returning(|_| Ok(Response));
         // TODO: setup mock_client to fail the first call and succeed the second
 
         let (outcome, n_retries) = with_retries(Request, mock_client, MAX_N_RETRIES);
@@ -60,6 +62,8 @@ mod tests {
     #[googletest::test]
     fn it_does_max_retries_if_all_calls_fail() {
         let mut mock_client = MockClient::new();
+        mock_client.expect_call().returning(|_| Err("".into()));
+
         // TODO: setup mock_client to fail all calls
 
         let (outcome, n_retries) = with_retries(Request, mock_client, MAX_N_RETRIES);

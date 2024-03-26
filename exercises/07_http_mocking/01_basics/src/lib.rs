@@ -5,10 +5,11 @@ use semver::Version;
 
 async fn get_latest_release(
     client: &Client,
+    base_uri: &str,
     owner: &str,
     repo: &str,
 ) -> Result<Version, GetReleaseError> {
-    let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/latest");
+    let url = format!("{base_uri}/repos/{owner}/{repo}/releases/latest");
     let response = client
         .get(&url)
         .header(CONTENT_TYPE, "application/vnd.github.v3+json")
@@ -46,19 +47,32 @@ enum GetReleaseError {
 #[cfg(test)]
 mod tests {
     use crate::GetReleaseError;
-    use googletest::matchers::err;
-    use googletest::{assert_that, pat};
+    use googletest::matchers::{err, pat};
+    use googletest::assert_that;
+    use wiremock::{MockServer, Mock, ResponseTemplate};
+    use wiremock::matchers::method;
 
     #[googletest::test]
     #[tokio::test]
     async fn errors_if_tag_is_not_valid_semver_version() {
+        let mock_server = MockServer::start().await;
+
+        // Precondition: do what follows only if the request method is "GET"
+        Mock::given(method("GET"))
+            // Response value: return a 200 OK
+            .respond_with(ResponseTemplate::new(200).set_body_string("{\"tag_name\": \"not a valid semver version\"}"))
+            // Expectation: panic if this mock doesn't match at least once
+            .expect(1..)
+            .mount(&mock_server)
+            .await;
+
         // Arrange
         let client = reqwest::Client::new();
         let owner = "LukeMathWalker";
         let repo = "pavex";
 
         // Act
-        let outcome = super::get_latest_release(&client, owner, repo).await;
+        let outcome = super::get_latest_release(&client, &mock_server.uri(), owner, repo).await;
 
         // Assert
         assert_that!(outcome, err(pat!(GetReleaseError::InvalidTag(_))));

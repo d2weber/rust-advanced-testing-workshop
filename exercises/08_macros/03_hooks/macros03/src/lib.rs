@@ -15,7 +15,13 @@ pub fn test(args: TokenStream, input: TokenStream) -> TokenStream {
         sig,
         block,
     } = test_fn;
-    let mut output = todo!("Use quote");
+    let mut output = quote!{
+        #vis #sig {
+            #(#before();)*
+            #block
+            #(#after();)*
+        }
+    };
 
     if !attrs.iter().any(|a| is_test_attribute(a)) {
         output = {
@@ -43,7 +49,17 @@ struct Args {
 
 impl RawArgs {
     pub fn validate(self) -> Args {
-        todo!()
+        let mut before = vec![];
+        let mut after = vec![];
+        for hook in self.vars {
+            // validate hook.fn_path
+            match hook.type_.to_string().as_str() {
+                "before" => {before.push(hook.fn_path);}
+                "after" => {after.push(hook.fn_path);}
+                _ => {panic!("Invalid type {}", hook.type_.to_string());}
+            }
+        }
+        Args{before, after}
     }
 }
 
@@ -64,7 +80,11 @@ impl Parse for RawArgs {
 
 impl Parse for RawHook {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        todo!()
+        Ok(RawHook {
+            type_: input.parse()?,
+            equals: input.parse()?,
+            fn_path: input.parse()?,
+        })
     }
 }
 

@@ -1,10 +1,15 @@
-use wiremock::{Match, Request};
+use wiremock::{http::{Method, HeaderValue}, Match, Request, };
 
 struct WellFormedJson;
 
 impl Match for WellFormedJson {
     fn matches(&self, request: &Request) -> bool {
-        todo!("Implement me!")
+        let body = &request.body;
+
+        request.method == Method::POST
+            && request.headers.get("Content-Type") == Some(&HeaderValue::from_bytes(b"application/json").unwrap())
+            && serde_json::from_slice::<serde_json::Value>(&body).is_ok()
+            && request.headers["Content-Length"] == body.len().to_string()
     }
 }
 

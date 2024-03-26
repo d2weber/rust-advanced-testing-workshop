@@ -1,7 +1,13 @@
 use std::str::FromStr;
 
+pub struct Parsed;
+
 mockall::mock! {
-    // TODO!
+    pub Parsed{}
+    impl FromStr for Parsed {
+        type Err=&'static str;
+        fn from_str(s: &str) -> Result<Self, &'static str> ;
+    }
 }
 
 #[cfg(test)]

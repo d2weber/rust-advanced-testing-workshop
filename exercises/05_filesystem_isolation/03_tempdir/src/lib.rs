@@ -16,6 +16,7 @@ fn get_workspace_member_manifests(workspace_root_dir: &Path) -> Vec<String> {
         // It's an example in the end!
         .map(|path| workspace_root_dir.join(path).join("Cargo.toml"))
         .collect();
+
     member_manifest_paths
         .iter()
         .map(|path| std::fs::read_to_string(path).expect("Failed to read member manifest"))
@@ -29,12 +30,13 @@ mod tests {
     use googletest::matchers::{eq, len};
     use std::path::{Path, PathBuf};
     use tempfile::TempDir;
+    use tempfile::tempdir;
 
     #[googletest::test]
     fn happy_path() {
         // Arrange
-        let workspace_root = todo!();
-        let workspace_root_path = todo!();
+        let workspace_root = tempdir().unwrap();
+        let workspace_root_path = workspace_root.path();
 
         let workspace_manifest = Manifest {
             workspace: Some(Workspace {
@@ -63,10 +65,18 @@ mod tests {
     }
 
     fn save_member_manifest(m: Manifest, workspace_root: &Path) {
-        todo!()
+        if let Some(ref p) = m.package {
+            let path = workspace_root.join(&p.name);
+            std::fs::create_dir(&path);
+            std::fs::write(path.join("Cargo.toml"), toml::to_string(&m).unwrap().as_bytes());
+        }
     }
 
     fn save_workspace_manifest(m: Manifest, workspace_root: &Path) {
-        todo!()
+        dbg!{&workspace_root};
+
+        let p = workspace_root.join("Cargo.toml");
+        dbg!{&p};
+        std::fs::write(p, toml::to_string(&m).unwrap().as_bytes());
     }
 }

@@ -56,13 +56,20 @@ mod tests {
         let server = MockServer::start().await;
         let caller_id = 1;
         let expected_path = format!("/auth/{caller_id}");
-        server
-            .register(
-                Mock::given(method("GET"))
-                    .and(path(&expected_path))
-                    .respond_with(ResponseTemplate::new(200)),
-            )
-            .await;
+
+
+        let base_url = Url::parse(&server.uri()).unwrap();
+        let repository = 'blk: {        
+            let guard = server
+                .register_as_scoped(
+                    Mock::given(method("GET"))
+                        .and(path(&expected_path))
+                        .respond_with(ResponseTemplate::new(200)),
+                )
+                .await;
+            break 'blk super::Repository::new(base_url.clone(), caller_id).await;
+        };
+
         server
             .register(
                 Mock::given(method("GET"))
@@ -70,11 +77,6 @@ mod tests {
                     .respond_with(ResponseTemplate::new(403)),
             )
             .await;
-
-        let base_url = Url::parse(&server.uri()).unwrap();
-
-        let repository = super::Repository::new(base_url.clone(), caller_id).await;
-
         // Act
         let outcome = repository.get(2).await;
 
